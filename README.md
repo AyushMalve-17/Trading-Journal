@@ -26,3 +26,8 @@ Then open: `http://localhost:8080`.
 - Default: `localStorage`
 - Code is structured so swapping in Firebase/Supabase later can be done by replacing the `dataStore` module.
 
+## Deployed Link
+- Link : `trading-journal-one-navy.vercel.app`
+
+
+
