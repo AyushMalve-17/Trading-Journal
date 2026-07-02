@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Trading Journal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="./src/styles.css" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- jsPDF + html2canvas for PDF export -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">TJ</div>
+        <div>
+          <div class="brand-title">Trading Journal</div>
+          <div class="brand-sub">Beginner-friendly journal with analytics</div>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <button id="themeToggle" class="btn btn-ghost" type="button" aria-label="Toggle theme">
+          <span class="icon">☾</span>
+          <span class="btn-text">Theme</span>
+        </button>
+
+        <button id="exportPdfBtn" class="btn btn-primary" type="button">
+          Export Trading Journal as PDF
+        </button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <aside class="sidebar" aria-label="Navigation">
+        <nav class="nav">
+          <button class="nav-link active" data-view="dashboard" type="button">Dashboard</button>
+          <button class="nav-link" data-view="add" type="button">Add Trade</button>
+          <button class="nav-link" data-view="history" type="button">Trade History</button>
+          <button class="nav-link" data-view="stats" type="button">Statistics</button>
+          <button class="nav-link" data-view="data" type="button">Data</button>
+        </nav>
+        <div class="sidebar-foot">
+          <div class="hint">Tip: Your data is stored in <b>localStorage</b> by default.</div>
+        </div>
+      </aside>
+
+      <section class="content">
+        <!-- DASHBOARD -->
+        <div class="view" id="view-dashboard">
+          <div class="grid grid-2">
+            <div class="card metric">
+              <div class="card-title">Total Trades</div>
+              <div class="metric-value" id="mTotalTrades">0</div>
+            </div>
+            <div class="card metric">
+              <div class="card-title">Win Rate (%)</div>
+              <div class="metric-value" id="mWinRate">0%</div>
+            </div>
+
+            <div class="card metric">
+              <div class="card-title">Total Profit/Loss</div>
+              <div class="metric-value" id="mTotalPnL">0</div>
+            </div>
+            <div class="card metric">
+              <div class="card-title">Current Account Balance</div>
+              <div class="metric-value" id="mBalance">0</div>
+            </div>
+
+            <div class="card metric">
+              <div class="card-title">Avg Risk-to-Reward</div>
+              <div class="metric-value" id="mAvgRR">0.00</div>
+            </div>
+            <div class="card metric">
+              <div class="card-title">Avg Risk %</div>
+              <div class="metric-value" id="mAvgRiskPct">0.00%</div>
+            </div>
+          </div>
+
+          <div class="card mt">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Recent Trades</div>
+                <div class="card-sub">Latest records across all pairs</div>
+              </div>
+              <div class="muted" id="dashboardHint">—</div>
+            </div>
+            <div class="table-wrap">
+              <table class="table" aria-label="Recent trades">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Pair</th>
+                    <th>Type</th>
+                    <th>Session</th>
+                    <th>Strategy</th>
+                    <th>Result</th>
+                    <th>Risk-to-Reward</th>
+                    <th>P/L</th>
+                  </tr>
+                </thead>
+                <tbody id="recentTradesTbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ADD TRADE -->
+        <div class="view hidden" id="view-add">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Add Trade</div>
+                <div class="card-sub">Fill the fields below. Risk-to-Reward and P/L can be calculated automatically.</div>
+              </div>
+            </div>
+
+            <form id="tradeForm" class="form-grid" novalidate>
+              <div class="field">
+                <label>Date</label>
+                <input type="date" name="date" required />
+              </div>
+
+              <div class="field">
+                <label>Trading Pair</label>
+                <input type="text" name="pair" placeholder="EUR/USD or BTC/USDT" required />
+              </div>
+
+              <div class="field">
+                <label>Buy/Sell</label>
+                <select name="side" required>
+                  <option value="Buy">Buy</option>
+                  <option value="Sell">Sell</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Session</label>
+                <select name="session" required>
+                  <option value="Asian">Asian</option>
+                  <option value="London">London</option>
+                  <option value="New York">New York</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Strategy Used</label>
+                <select name="strategy" required>
+                  <option value="SMC">SMC</option>
+                  <option value="Price Action">Price Action</option>
+                  <option value="Scalping">Scalping</option>
+                  <option value="Breakout">Breakout</option>
+                  <option value="Swing">Swing</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Entry Price</label>
+                <input type="number" step="any" name="entryPrice" required />
+              </div>
+
+              <div class="field">
+                <label>Stop Loss</label>
+                <input type="number" step="any" name="stopLoss" required />
+              </div>
+
+              <div class="field">
+                <label>Take Profit</label>
+                <input type="number" step="any" name="takeProfit" required />
+              </div>
+
+              <div class="field">
+                <label>Exit Price</label>
+                <input type="number" step="any" name="exitPrice" required />
+              </div>
+
+              <div class="field">
+                <label>Lot Size</label>
+                <input type="number" step="any" name="lotSize" required />
+              </div>
+
+              <div class="field">
+                <label>Risk %</label>
+                <input type="number" step="any" name="riskPct" required />
+              </div>
+
+              <div class="field">
+                <label>Risk-to-Reward (auto)</label>
+                <input type="number" step="any" name="riskToReward" readonly />
+              </div>
+
+              <div class="field">
+                <label>Profit/Loss (auto)</label>
+                <input type="number" step="any" name="profitLoss" readonly />
+              </div>
+
+              <div class="field">
+                <label>Result</label>
+                <select name="result" required>
+                  <option value="Win">Win</option>
+                  <option value="Loss">Loss</option>
+                  <option value="Breakeven">Breakeven</option>
+                </select>
+              </div>
+
+              <div class="field span-2">
+                <label>Emotions Before Trade</label>
+                <input type="text" name="emotionsBefore" placeholder="e.g., Confident, Anxious" />
+              </div>
+
+              <div class="field span-2">
+                <label>Emotions After Trade</label>
+                <input type="text" name="emotionsAfter" placeholder="e.g., Calm, Frustrated" />
+              </div>
+
+              <div class="field span-2">
+                <label>Mistakes Made</label>
+                <input type="text" name="mistakes" placeholder="e.g., Entered late" />
+              </div>
+
+              <div class="field span-2">
+                <label>Lessons Learned</label>
+                <input type="text" name="lessons" placeholder="e.g., Wait for confirmation" />
+              </div>
+
+              <div class="field span-2">
+                <label>Notes</label>
+                <textarea name="notes" rows="3" placeholder="Add any context, setup details, screenshots notes..." ></textarea>
+              </div>
+
+              <div class="field">
+                <label>Screenshot (Before)</label>
+                <input type="file" name="screenshotBefore" accept="image/*" />
+                <div class="file-preview" data-preview-for="screenshotBefore"></div>
+              </div>
+
+              <div class="field">
+                <label>Screenshot (After)</label>
+                <input type="file" name="screenshotAfter" accept="image/*" />
+                <div class="file-preview" data-preview-for="screenshotAfter"></div>
+              </div>
+
+              <div class="form-actions">
+                <input type="hidden" name="id" />
+                <button type="submit" class="btn btn-primary" id="submitTradeBtn">Add Trade</button>
+                <button type="button" class="btn btn-ghost" id="resetFormBtn">Reset</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- HISTORY -->
+        <div class="view hidden" id="view-history">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Trade History</div>
+                <div class="card-sub">Search, filter, edit and delete trades.</div>
+              </div>
+            </div>
+
+            <div class="filters">
+              <div class="field">
+                <label>Search</label>
+                <input type="text" id="searchBox" placeholder="Pair, strategy, notes..." />
+              </div>
+              <div class="field">
+                <label>From</label>
+                <input type="date" id="filterFrom" />
+              </div>
+              <div class="field">
+                <label>To</label>
+                <input type="date" id="filterTo" />
+              </div>
+              <div class="field">
+                <label>Strategy</label>
+                <select id="filterStrategy">
+                  <option value="">All</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Result</label>
+                <select id="filterResult">
+                  <option value="">All</option>
+                  <option value="Win">Win</option>
+                  <option value="Loss">Loss</option>
+                  <option value="Breakeven">Breakeven</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Trading Pair</label>
+                <input type="text" id="filterPair" placeholder="e.g., BTC/USDT" />
+              </div>
+              <div class="field">
+                <label>Sort</label>
+                <select id="sortOrder">
+                  <option value="newest">Newest</option>
+                  <option value="oldest">Oldest</option>
+                </select>
+              </div>
+              <div class="field align-end">
+                <button class="btn btn-ghost" type="button" id="clearFiltersBtn">Clear Filters</button>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table class="table" aria-label="Trade history">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Pair</th>
+                    <th>Type</th>
+                    <th>Session</th>
+                    <th>Strategy</th>
+                    <th>Result</th>
+                    <th>R:R</th>
+                    <th>P/L</th>
+                    <th style="width: 160px;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="historyTbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- STATS -->
+        <div class="view hidden" id="view-stats">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Statistics</div>
+                <div class="card-sub">Charts update automatically based on your trades.</div>
+              </div>
+            </div>
+
+            <div class="charts">
+              <div class="chart-card"><canvas id="chartWinLoss" height="200"></canvas></div>
+              <div class="chart-card"><canvas id="chartMonthly" height="200"></canvas></div>
+              <div class="chart-card"><canvas id="chartStrategy" height="200"></canvas></div>
+              <div class="chart-card"><canvas id="chartSession" height="200"></canvas></div>
+              <div class="chart-card"><canvas id="chartRiskDist" height="200"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DATA -->
+        <div class="view hidden" id="view-data">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Data</div>
+                <div class="card-sub">CSV import/export, JSON backup & restore.</div>
+              </div>
+            </div>
+
+            <div class="data-grid">
+              <div class="card inner-card">
+                <div class="card-title">CSV Export</div>
+                <div class="card-sub">Download your trades as CSV.</div>
+                <button class="btn btn-primary mt" type="button" id="csvExportBtn">Export CSV</button>
+              </div>
+
+              <div class="card inner-card">
+                <div class="card-title">CSV Import</div>
+                <div class="card-sub">Upload a CSV to add trades.</div>
+                <input id="csvImportFile" type="file" accept="text/csv" />
+                <button class="btn btn-ghost mt" type="button" id="csvImportBtn">Import CSV</button>
+              </div>
+
+              <div class="card inner-card">
+                <div class="card-title">Backup / Restore JSON</div>
+                <div class="card-sub">Export/import a full backup of your journal.</div>
+                <button class="btn btn-primary mt" type="button" id="jsonBackupBtn">Backup JSON</button>
+                <input id="jsonRestoreFile" type="file" accept="application/json" />
+                <button class="btn btn-ghost mt" type="button" id="jsonRestoreBtn">Restore JSON</button>
+              </div>
+            </div>
+
+            <div class="notice mt">
+              <b>Important:</b> PDF export uses your browser to render charts and tables.
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div id="toastHost" class="toast-host" aria-live="polite" aria-atomic="true"></div>
+  </div>
+
+  <script type="module" src="./src/app.js"></script>
+
+  <!-- Note: screenshots are stored as data URLs in localStorage (base64). -->
+</body>
+</html>
+
+
+
